@@ -29,7 +29,7 @@ flask_app.config['LobbyManager'] = LobbyManager()
 #Initialize the socketIO object
 socketio.init_app(flask_app, cors_allowed_origins="*")
 if __name__ == '__main__':
-	socketio.run(flask_app)
+	socketio.run(flask_app,host=HOST, port=PORT)
 
 @socketio.on('connect')
 def handle_connect():
