@@ -1,0 +1,148 @@
+<html>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<body>
+		<div id="{{username}}" class="canvasDiv" style="margin:0 auto;">{{username}}</div>
+		<div class="tools">
+			<button type="button" class="button" onClick="clearCanvas()">Clear</button>
+			<input id="colorPicker" type="color" class="color-picker">
+		</div>
+	</body>
+	<script>
+		var paint;
+		var canvasDiv;
+		var canvas;
+		var context;
+		var canvasWidth = 739;
+		var canvasHeight = 588;
+		var prevX = 0;
+		var prevY = 0;
+		var switchSend = 1;
+		var strokeColor;
+		var colorPicker;
+
+		//Canvas of the other player
+		var previousSize = 0;
+		var count = 0;
+		$( document ).ready(function() {
+			colorPicker = document.getElementById('colorPicker');
+			canvasDiv = document.getElementsByClassName('canvasDiv')[0];
+			username = canvasDiv.id
+			if ($("#canvas").length == 0)
+			{
+				canvas = document.createElement('canvas');
+				canvas.setAttribute('width', canvasWidth);
+				canvas.setAttribute('height', canvasHeight);
+				canvas.setAttribute('id', 'canvas');
+				canvas.style.background = 'white';
+				canvas.style.border='0.1em solid black';
+				canvas.style.position='absolute';
+				canvas.style.margin='auto';
+				canvas.style.top='0';
+				canvas.style.bottom='0';
+				canvas.style.left='0';
+				canvas.style.right='0';
+				canvasDiv.appendChild(canvas);
+			}
+			context = canvas.getContext("2d");
+			strokeColor = "#292929";
+			context.strokeStyle = strokeColor;
+			context.lineJoin = "round";
+			context.lineWidth = 5;
+
+
+			if(typeof G_vmlCanvasManager != 'undefined') {
+				canvas = G_vmlCanvasManager.initElement(canvas);
+			}
+
+			function start(e)
+			{
+				context.beginPath();
+				//context.moveTo(sliceClickX[0], sliceClickY[0]);
+				e.preventDefault();
+				if (e.type == "mousedown")
+				{
+					prevX = e.pageX - this.offsetLeft;
+					prevY = e.pageY - this.offsetTop;
+				}
+				else //touch event
+				{
+					prevX = e.touches["0"].pageX - this.offsetLeft;
+					prevY = e.touches["0"].pageY - this.offsetTop;
+				}	
+				paint = true;
+			}
+
+			var lastMove = 0;
+			function draw(e)
+			{
+				e.preventDefault();
+				var currX = 0;
+				var currY = 0;
+				if (e.type == "mousemove")
+				{
+					currX = e.pageX - this.offsetLeft;
+					currY = e.pageY - this.offsetTop;
+				}
+				else //touch event
+				{
+					currX = e.touches["0"].pageX - this.offsetLeft;
+					currY = e.touches["0"].pageY - this.offsetTop;
+				}
+				if(Date.now() - lastMove > 30) {
+					// Do stuff
+					lastMove = Date.now();
+				
+					if(paint){
+						var sliceClickX = [prevX, currX];
+						var sliceClickY = [prevY, currY];
+						socket.emit('canvasData', {username, sliceClickX, sliceClickY, strokeColor, masterRoomCode});
+						context.lineTo(sliceClickX[1], sliceClickY[1]);
+						context.strokeStyle = strokeColor;
+						//context.closePath();
+						context.stroke();
+						prevX = currX;
+						prevY = currY;
+						//redraw();
+					}
+				}
+			}
+			function stop(e)
+			{
+				e.preventDefault();
+				if (paint) {
+					context.stroke();
+					context.closePath();
+					paint = false;
+
+				}
+			}
+
+			function init() {
+				canvas.addEventListener("touchstart",start,false);
+				canvas.addEventListener("touchmove",draw,false);
+				canvas.addEventListener("touchend",stop,false);
+				canvas.addEventListener("mousedown",start,false);
+				canvas.addEventListener("mousemove",draw,false);
+				canvas.addEventListener("mouseup",stop,false);
+				canvas.addEventListener("mouseout",stop,false);
+
+
+				colorPicker.addEventListener('change', changeColor, false);
+			}
+			socket.emit('playerJoin', {username: '{{username}}', room_code: '{{room_code}}'});
+			init();
+		});
+		function clearCanvas() {
+			context.fillStyle = "white";
+			context.clearRect(0, 0, canvas.width, canvas.height);
+			context.fillRect(0, 0, canvas.width, canvas.height);
+			context.beginPath();
+			socket.emit('clearCanvas', {username, masterRoomCode});
+		}
+
+		function changeColor(event) {
+			strokeColor = event.target.value;
+		}
+	</script>
+</html>
+

@@ -1,0 +1,96 @@
+<html>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<body>
+		<h1> Room Code: <p style="display:inline;" id="roomCode">{{ code }}</p></h1>
+		<div id="canvas-container" style="display:flex; flex-wrap:wrap; margin:0">
+		</div> 
+		<script>
+			var rowCount = 3;
+			var contextDict = {};
+			var canvasContainer;
+			var canvasWidth = 739;
+			var canvasHeight = 588;
+			var codeString = '{{code}}';
+			$(document).ready(function() {
+				canvasContainer = document.getElementById('canvas-container');
+				if(typeof G_vmlCanvasManager != 'undefined') {
+					canvas = G_vmlCanvasManager.initElement(canvas);
+				}
+
+				if(lobbyFlag)
+				{
+					console.log("Warning: Existing host lobby script found.");
+					//Set a new gameCode since we're making a new game.
+					codeString = '{{code}}';
+					socket.emit('createGame', codeString);
+					return;
+				}
+				lobbyFlag = true;
+				socket.emit('createGame', codeString);
+
+				function redraw(context, arrX, arrY, strokeColor)
+				{
+					context.beginPath();
+					if (arrX[0] == null)
+					{
+						arrX[0] = arrX[1];
+						arrY[0] = arrY[1];
+					}
+					context.moveTo(arrX[0], arrY[0]);
+					context.lineTo(arrX[1], arrY[1]);
+					context.strokeStyle = strokeColor;
+					context.closePath();
+					context.stroke();
+				}
+				socket.on('playerJoinGame', function(msg)
+				{
+					var canvasDiv = document.createElement('div');
+					var h1= document.createElement('H1');
+					h1.innerHTML = msg['username'];
+					//Create new canvas
+					canvas = document.createElement('canvas');
+					canvas.setAttribute('width', canvasWidth);
+					canvas.setAttribute('height', canvasHeight);
+					canvas.setAttribute('id', 'canvas');
+					canvas.style.background = 'white';
+					canvas.style.border='0.1em solid black';
+					canvas.style.margin='5';
+					canvas.style.flex='0 0 30%'
+					canvasDiv.appendChild(h1);
+					canvasDiv.appendChild(canvas);
+					canvasContainer.appendChild(canvasDiv);
+
+					//Get Context
+					context = canvas.getContext("2d");
+					context.strokeStyle = "#292929";
+					context.lineJoin = "round";
+					context.lineWidth = 5;
+					context.fillStyle = "white";
+					context.fillRect(0, 0, canvasWidth, canvasHeight);
+					contextDict[msg['username']] = context
+				});
+
+				socket.on('playerLeave', function(msg)
+				{
+
+				});
+				socket.on('playerDrawData', function(json)
+				{
+					context = contextDict[json['username']]
+					redraw(context, json['sliceClickX'], json['sliceClickY'], json['strokeColor']);
+				});
+
+				socket.on('clearCanvas', function(json)
+				{
+					context = contextDict[json['username']]
+					context.fillStyle = "white";
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					context.fillRect(0, 0, canvas.width, canvas.height);
+					context.beginPath();
+				});
+			});
+		</script>
+	</body>
+	
+</html>
+

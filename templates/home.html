@@ -1,0 +1,82 @@
+<html>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <body class="home">
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-6" style="margin-bottom:5px;">
+                    <button type="button" class="btn btn-block btn-success" id="CreateGameButt">Create Game</button>
+                </div>
+                <div class="col-sm-6" style="margin-bottom:5px;">
+                    <button type="button" class="btn btn-block btn-primary" id="JoinGameButt">Join Game</button>
+                </div>
+            </div>
+        </div>
+    </body>
+
+    <script>
+        $(document).ready(function()
+        {
+            console.log('Home readying...');
+            
+            $("#JoinGameButt").on("touchstart", function(){
+                joinGame();
+            });
+            $( "#JoinGameButt").click(function() {
+                joinGame();
+            });
+            $("#CreateGameButt").on("touchstart", function(){
+                createGame();
+            });
+            $( "#CreateGameButt" ).click(function() {
+                createGame();
+            });
+            
+            /*If we load the functions below we will have duplicate functions created when we load this page once more. In that case, we must have some sort of flag that forces this function to return if document ready has been called at least once. That way, all functions and socket events won't be loaded. You will notice this being done in multiple html files as they follow a similar format.
+            
+            In summary, anything you DO NOT want to load twice put after the flag check.
+            
+            Button listeners need to be reloaded though. I assume that when we load a new page, we have a fresh set of buttons. This means that they don't have listeners attached to them, so they need to be loaded.
+            */
+            if(homeFlag)
+            {
+                console.log("Warning: Existing index script found.");
+                return;
+            }
+            
+            homeFlag = true;
+            
+            function createGame()
+            {
+                console.log("createGame");
+                
+                $.ajax({
+                    type:'POST',
+                    url: '/create',
+                    success: function(data)
+                    {
+                        //console.log(data);
+                        $('body').removeClass('home');
+                        $('body').addClass('lobby');
+                        $('body').html(data);
+                    }
+                });
+            }
+    
+            function joinGame()
+            {
+                console.log("Join Game Screen");
+                var url = "{{ url_for('join') }}";
+                $.ajax({
+                    type:'POST',
+                    url: '/join',
+                    success: function(data)
+                    {
+                        //console.log(data);
+                        $('body').html(data);
+                    }
+                });
+            }
+    
+            });
+    </script>
+</html>

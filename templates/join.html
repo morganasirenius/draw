@@ -1,0 +1,135 @@
+<html>
+	<head>
+		<title>{{ title }} - Draw</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        </script>
+	</head>
+	<body id="Main">
+		<p align="center">Draw!</p><br>
+        <div id="content">
+            <form style="align-content: center;margin:0 auto;" action="/index" method="post">
+                {{ form.hidden_tag() }}
+                <p align="center">
+                    {{ form.room_code.label }}<br>
+                    {{ form.room_code(size=32) }}<br>
+                    {% for error in form.room_code.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+                <p align="center">
+                    {{ form.name.label }}<br>
+                    {{ form.name(size=32) }}<br>
+                    {% for error in form.name.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+                <p align="center">
+                    <button type="button" class="btn btn-success" id="player">Join</button><br>
+                </p>
+            </form>
+        </div>
+        
+	</body>
+    
+    <script>
+        $(document).ready(function() {
+            $('#player').click(function (e) {
+                console.log("click");
+                if (isMobile == false) playerAction(e);
+            });
+            $("#player").on("touchstart", function(e){
+                console.log("touch");
+                if (isMobile == true) playerAction(e);
+            });
+            //Make sure these functions/buttons are set first, then check for the join flag.
+            if(joinFlag)
+            {
+                console.log("Warning: Existing Join Script detected.");
+                return;
+            }
+    
+            joinFlag = true;
+            
+            socket.on('playerState', function(msg)
+            {
+                console.log("playerState");
+                console.log(msg);
+                var gameCode = document.getElementsByName('room_code')[0].value;
+    
+                console.log(msg['gameState']);
+                gameState = msg['gameState'];
+                
+                if (gameState == 0 || gameState == 1)
+                {
+                    $.ajax({
+                        type: "POST",
+                        url: '/login',
+                        data: $('form').serialize(), // serializes the form's elements.
+                        success: function (data) {
+                            console.log(data);
+                            if (data['error']>0) 
+                            {
+                                setRoomCode("");
+                                $('#player').prop('disabled', false);
+                            }
+                            if (data['error'] == 1)
+                            {
+                                alert("Wrong Game Code");
+                                return;
+                            }
+                            else if (data['error'] == 2)
+                            {
+                                alert("The room is full!");
+                                return;
+                            }
+                            else if (data['error'] == 3)
+                            {
+                                alert('Please choose a different username');
+                                return;
+                            }
+                            else if (data['error'] == 4)
+                            {
+                                alert('Invalid form');
+                                return;
+                            }
+                            $('body').html(data);
+    
+                        }
+                    });
+                }
+            });
+
+            function playerAction(e)
+            {
+                e.stopPropagation();
+                e.preventDefault();
+                console.log("playerAction");
+                var name = document.getElementsByName('name')[0].value;
+                var gameCode = document.getElementsByName('room_code')[0].value;
+                if (name == "" || gameCode == "")
+                {
+                    alert('Please fill out all fields');
+                    return;
+                }
+                setRoomCode(gameCode);
+                if ($("#player").is(":disabled") == false)
+                {
+                    socket.emit('checkExistUser', {user: name, room_code: gameCode}); 
+                    $('#player').prop('disabled', true);
+                }
+                else $('#player').prop('disabled', true);
+            }
+            // Inject our CSRF token into our AJAX request.
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", "{{ form.csrf_token._value() }}")
+                    }
+                }
+            })
+        });
+        
+    </script>
+
+</html>
+
