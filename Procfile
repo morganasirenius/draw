@@ -1,1 +1,1 @@
-web: gunicorn webapp:socketio --log-file=-
+web: gunicorn webapp:flask_app --log-file=-
